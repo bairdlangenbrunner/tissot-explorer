@@ -10,7 +10,7 @@ export default function App() {
   return (
     <>
       <header>
-        <h1>Tissot Explorer</h1>
+        <h1>Tissot explorer</h1>
         <span className="sub">Map projection distortion explorer</span>
         <button className="about-btn" onClick={() => setAboutOpen(true)}>
           About

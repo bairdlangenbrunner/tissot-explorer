@@ -40,7 +40,7 @@ export const projections: ProjectionDef[] = [
   { name: 'Sinusoidal', fn: () => d3Proj.geoSinusoidal().precision(0.1) },
   {
     name: 'Berghaus Star',
-    fn: () => d3Proj.geoBerghaus().precision(0.1).clipAngle(180 - 1e-3),
+    fn: () => d3Proj.geoBerghaus().precision(0.1),
   },
   {
     name: 'Interrupted Goode Homolosine',

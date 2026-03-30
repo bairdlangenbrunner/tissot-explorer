@@ -9,9 +9,9 @@ export function AboutModal({ onClose }: AboutModalProps) {
         <button className="modal-close" onClick={onClose}>
           &times;
         </button>
-        <h2>About Tissot Explorer</h2>
+        <h2>About Tissot explorer</h2>
         <p>
-          Tissot Explorer is an interactive tool for visualizing how map
+          Tissot explorer is an interactive tool for visualizing how map
           projections distort the Earth's surface. Every flat map introduces
           distortion — shapes get stretched, areas change, and angles bend.
           This tool makes that distortion visible.

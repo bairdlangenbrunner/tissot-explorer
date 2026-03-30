@@ -57,7 +57,7 @@ export function MapCanvas({ projectionIndex }: Props) {
     // Clear and rebuild
     root.selectAll('*').remove();
 
-    // Defs + clip path
+    // Build clip path from sphere outline
     const defs = root.append('defs');
     const outlinePath = path({ type: 'Sphere' }) ?? '';
     defs
@@ -74,9 +74,14 @@ export function MapCanvas({ projectionIndex }: Props) {
       .attr('stroke', 'var(--outline)')
       .attr('stroke-width', 1.5);
 
+    // Clipped group for graticule, land, and indicatrix
+    const clipped = root
+      .append('g')
+      .attr('clip-path', 'url(#projection-clip)');
+
     // Graticule
     const graticule = d3.geoGraticule().step([15, 15]);
-    root
+    clipped
       .append('path')
       .datum(graticule())
       .attr('d', path)
@@ -86,7 +91,7 @@ export function MapCanvas({ projectionIndex }: Props) {
 
     // Land
     if (worldRef.current) {
-      root
+      clipped
         .append('path')
         .datum(worldRef.current)
         .attr('d', path)
@@ -95,11 +100,10 @@ export function MapCanvas({ projectionIndex }: Props) {
         .attr('stroke-width', 0.4);
     }
 
-    // Indicatrix group (clipped)
-    root
+    // Indicatrix group (inside clipped group)
+    clipped
       .append('g')
-      .attr('class', 'indicatrix-layer')
-      .attr('clip-path', 'url(#projection-clip)');
+      .attr('class', 'indicatrix-layer');
   }, [projectionIndex]);
 
   // Re-render on projection change or world load
