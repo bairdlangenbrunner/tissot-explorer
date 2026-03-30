@@ -20,7 +20,6 @@ export function MapCanvas({ projectionIndex }: Props) {
   const svgRef = useRef<SVGSVGElement>(null);
   const projectionRef = useRef<GeoProjection | null>(null);
   const worldRef = useRef<FeatureCollection | null>(null);
-  const [hintVisible, setHintVisible] = useState(true);
   const [coords, setCoords] = useState<[number, number] | null>(null);
   const [tissot, setTissot] = useState<TissotResult | null>(null);
 
@@ -46,13 +45,25 @@ export function MapCanvas({ projectionIndex }: Props) {
     const w = container.clientWidth;
     const h = container.clientHeight;
 
-    // Measure the info panel so we can center the projection between it and the top
-    const infoEl = container.querySelector('.info-panel') as HTMLElement | null;
+    // On mobile, center between top and info panel; on desktop, center in the full container
+    const isMobile = window.matchMedia('(max-width: 640px)').matches;
+    const infoEl = isMobile
+      ? (container.querySelector('.info-panel') as HTMLElement | null)
+      : null;
     const infoPanelHeight = infoEl ? infoEl.offsetHeight : 0;
 
     const proj = projections[projectionIndex].fn();
-    proj.fitSize([w * 0.85, h * 0.85], { type: 'Sphere' });
-    proj.translate([w / 2, (h - infoPanelHeight) / 2]);
+    const marginX = w * 0.075;
+    const marginTop = h * 0.05;
+    const marginBottom = h * 0.1;
+    const availH = h - infoPanelHeight;
+    proj.fitExtent(
+      [
+        [marginX, marginTop],
+        [w - marginX, availH - marginBottom],
+      ],
+      { type: 'Sphere' },
+    );
     projectionRef.current = proj;
 
     const path = d3.geoPath(proj);
@@ -137,7 +148,7 @@ export function MapCanvas({ projectionIndex }: Props) {
       setTissot(result);
       const { center, a, b, angle } = result;
 
-      const baseRadius = 18;
+      const baseRadius = 36;
       const maxAxis = Math.max(a, b);
       const scale = maxAxis > 0 ? baseRadius / maxAxis : 1;
 
@@ -177,8 +188,8 @@ export function MapCanvas({ projectionIndex }: Props) {
         .attr('x2', center[0] + cosA * crossSize)
         .attr('y2', center[1] + sinA * crossSize)
         .attr('stroke', 'var(--indicatrix-stroke)')
-        .attr('stroke-width', 0.5)
-        .attr('opacity', 0.3);
+        .attr('stroke-width', 1)
+        .attr('opacity', 0.5);
 
       g.append('line')
         .attr('x1', center[0] + sinA * crossSize)
@@ -186,8 +197,8 @@ export function MapCanvas({ projectionIndex }: Props) {
         .attr('x2', center[0] - sinA * crossSize)
         .attr('y2', center[1] + cosA * crossSize)
         .attr('stroke', 'var(--indicatrix-stroke)')
-        .attr('stroke-width', 0.5)
-        .attr('opacity', 0.3);
+        .attr('stroke-width', 1)
+        .attr('opacity', 0.5);
     },
     [],
   );
@@ -241,7 +252,6 @@ export function MapCanvas({ projectionIndex }: Props) {
         return;
       }
 
-      setHintVisible(false);
       setCoords([lon, lat]);
       drawIndicatrix(lon, lat);
     },
@@ -283,10 +293,7 @@ export function MapCanvas({ projectionIndex }: Props) {
       }}
     >
       <svg ref={svgRef} />
-      <div className={`hint ${hintVisible ? '' : 'hidden'}`}>
-        Touch or hover over the map
-      </div>
-      <InfoPanel coords={coords} tissot={tissot} />
+<InfoPanel coords={coords} tissot={tissot} />
     </div>
   );
 }

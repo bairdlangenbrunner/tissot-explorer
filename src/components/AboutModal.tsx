@@ -9,17 +9,16 @@ export function AboutModal({ onClose }: AboutModalProps) {
         <button className="modal-close" onClick={onClose}>
           &times;
         </button>
-        <h2>About Tissot explorer</h2>
         <p>
           Tissot explorer is an interactive tool for visualizing how map
           projections distort the Earth's surface. Every flat map introduces
-          distortion — shapes get stretched, areas change, and angles bend.
+          distortion: shapes get stretched, areas change, and angles bend.
           This tool makes that distortion visible.
         </p>
         <h3>How it works</h3>
         <p>
-          Hover over the map to see a <strong>Tissot indicatrix</strong> — a
-          small ellipse that shows how a tiny circle on the globe would appear
+          Hover over the map to see a <strong>Tissot indicatrix</strong>, a
+          small ellipse that shows how a circle on the globe would appear
           under the current projection. A perfect circle means no local
           distortion; the more elongated or enlarged the ellipse, the greater
           the distortion at that point.
@@ -28,12 +27,12 @@ export function AboutModal({ onClose }: AboutModalProps) {
         <dl>
           <dt>h (meridian scale)</dt>
           <dd>
-            Scale factor along north–south lines. A value of 1.0 means no
+            Scale factor along north-south lines. A value of 1.0 means no
             stretching; higher values mean the map is stretched vertically.
           </dd>
           <dt>k (parallel scale)</dt>
           <dd>
-            Scale factor along east–west lines. A value of 1.0 means no
+            Scale factor along east-west lines. A value of 1.0 means no
             stretching; higher values mean the map is stretched horizontally.
           </dd>
           <dt>Area scale (s)</dt>
@@ -51,7 +50,7 @@ export function AboutModal({ onClose }: AboutModalProps) {
         <h3>Try it</h3>
         <p>
           Switch between projections using the buttons above the map. Each
-          projection makes different trade-offs — compare Mercator's shape
+          projection makes different trade-offs. Compare Mercator's shape
           preservation with Mollweide's area preservation, or see how the
           orthographic globe shows minimal distortion near its center.
         </p>

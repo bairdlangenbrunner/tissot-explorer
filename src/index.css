@@ -13,13 +13,13 @@
   --text: #c8cdd8;
   --text-dim: #7a8090;
   --accent: #e85d3a;
-  --ocean: #0d1520;
-  --land: #253040;
-  --land-stroke: #2a3348;
-  --graticule: #1c2535;
-  --indicatrix-fill: rgba(232, 93, 58, 0.25);
-  --indicatrix-stroke: #e85d3a;
-  --outline: #1e2330;
+  --ocean: #111f2e;
+  --land: #334d66;
+  --land-stroke: #3d5a75;
+  --graticule: #263848;
+  --indicatrix-fill: rgba(232, 93, 58, 0.3);
+  --indicatrix-stroke: #f06a45;
+  --outline: #2a3a4e;
 }
 
 body {
@@ -87,7 +87,54 @@ header span.sub {
 
 .controls-desktop {
   display: flex;
-  gap: 6px;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.projection-group {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.group-label {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Helvetica, Arial, sans-serif;
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  white-space: nowrap;
+  min-width: 120px;
+  flex-shrink: 0;
+  position: relative;
+  cursor: default;
+}
+
+.group-tooltip {
+  display: none;
+  position: absolute;
+  left: 0;
+  top: calc(100% + 6px);
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 6px 10px;
+  font-size: 11px;
+  text-transform: none;
+  letter-spacing: normal;
+  color: var(--text);
+  white-space: nowrap;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.group-label:hover .group-tooltip {
+  display: block;
+}
+
+.group-buttons {
+  display: flex;
+  gap: 4px;
   flex-wrap: wrap;
 }
 
@@ -344,13 +391,40 @@ header span.sub {
     left: 16px;
     right: 16px;
     top: calc(100% + 6px);
+    max-height: calc(100dvh - 120px);
+    overflow-y: auto;
     display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
+    flex-direction: column;
+    gap: 8px;
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 6px;
     padding: 10px;
+  }
+
+  .controls-dropdown .projection-group {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+  }
+
+  .group-tooltip {
+    display: inline;
+    position: static;
+    background: none;
+    border: none;
+    padding: 0;
+    margin-left: 4px;
+    font-size: 11px;
+    text-transform: none;
+    letter-spacing: normal;
+    color: var(--text-dim);
+    opacity: 0.7;
+    pointer-events: none;
+  }
+
+  .group-label:hover .group-tooltip {
+    display: inline;
   }
 
   .controls button {

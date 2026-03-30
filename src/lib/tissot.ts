@@ -72,7 +72,10 @@ export function tissotAtPoint(
   const E = dxdphi * dxdphi + dxdlam * dxdlam;
   const G = dydphi * dydphi + dydlam * dydlam;
   const F = dxdphi * dydphi + dxdlam * dydlam;
-  const angle = 0.5 * Math.atan2(2 * F, E - G);
+  // When the ellipse is nearly circular, the orientation is undefined and
+  // atan2(≈0, ≈0) produces numerically unstable jitter — snap to 0.
+  const eccentricity = Math.abs(a - b) / Math.max(a, b, 1e-12);
+  const angle = eccentricity < 0.01 ? 0 : 0.5 * Math.atan2(2 * F, E - G);
 
   const omega =
     (Math.acos(Math.max(-1, Math.min(1, (2 * a * b) / (a * a + b * b)))) *

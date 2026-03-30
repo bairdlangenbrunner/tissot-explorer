@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { projections } from '../lib/projections';
+import { projections, projectionGroups } from '../lib/projections';
 
 interface Props {
   activeIndex: number;
@@ -18,22 +18,48 @@ export function ProjectionPicker({ activeIndex, onSelect }: Props) {
       }
     }
     document.addEventListener('mousedown', handleClick);
-    return () => document.removeEventListener('mousedown', handleClick);
+    document.addEventListener('touchstart', handleClick);
+    return () => {
+      document.removeEventListener('mousedown', handleClick);
+      document.removeEventListener('touchstart', handleClick);
+    };
   }, [expanded]);
+
+  // Build grouped buttons with flat-index tracking
+  function renderGroups(onClickExtra?: () => void) {
+    let flatIndex = 0;
+    return projectionGroups.map((group) => (
+      <div key={group.label} className="projection-group">
+        <span className="group-label">
+          {group.label}
+          <span className="group-tooltip">{group.description}</span>
+        </span>
+        <div className="group-buttons">
+          {group.projections.map((p) => {
+            const idx = flatIndex++;
+            return (
+              <button
+                key={p.name}
+                className={idx === activeIndex ? 'active' : ''}
+                onClick={() => {
+                  onSelect(idx);
+                  onClickExtra?.();
+                }}
+              >
+                {p.name}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    ));
+  }
 
   return (
     <div className="controls">
-      {/* Desktop: all buttons visible */}
-      <div className="controls-grid controls-desktop">
-        {projections.map((p, i) => (
-          <button
-            key={p.name}
-            className={i === activeIndex ? 'active' : ''}
-            onClick={() => onSelect(i)}
-          >
-            {p.name}
-          </button>
-        ))}
+      {/* Desktop: grouped buttons */}
+      <div className="controls-desktop">
+        {renderGroups()}
       </div>
 
       {/* Mobile: active button + "More" toggle */}
@@ -46,24 +72,13 @@ export function ProjectionPicker({ activeIndex, onSelect }: Props) {
             className="controls-toggle"
             onClick={() => setExpanded(!expanded)}
           >
-            {expanded ? 'Less' : 'More'}
+            {expanded ? 'less' : 'more'}
             <span className={`toggle-arrow ${expanded ? 'open' : ''}`}>&#9662;</span>
           </button>
         </div>
         {expanded && (
           <div className="controls-dropdown">
-            {projections.map((p, i) => (
-              <button
-                key={p.name}
-                className={i === activeIndex ? 'active' : ''}
-                onClick={() => {
-                  onSelect(i);
-                  setExpanded(false);
-                }}
-              >
-                {p.name}
-              </button>
-            ))}
+            {renderGroups(() => setExpanded(false))}
           </div>
         )}
       </div>
