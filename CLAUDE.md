@@ -2,7 +2,7 @@
 
 ## Project overview
 
-Tissot Explorer — a single-page interactive tool that visualizes map projection distortion using Tissot indicatrices. The user hovers over a map and sees a Tissot ellipse computed in real time from the projection's Jacobian. An about modal explains the tool and metrics to users.
+Projection Explorer — a single-page interactive tool that visualizes map projection distortion using Tissot indicatrices. The user hovers over a map and sees a Tissot ellipse computed in real time from the projection's Jacobian. An about modal explains the tool and metrics to users.
 
 ## Architecture
 

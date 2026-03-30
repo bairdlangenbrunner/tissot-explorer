@@ -1,8 +1,8 @@
-# Tissot Explorer
+# Projection Explorer
 
 An interactive tool for visualizing how map projections distort the Earth's surface using [Tissot indicatrices](https://en.wikipedia.org/wiki/Tissot%27s_indicatrix).
 
-Hover over any point on the map to see a real-time Tissot ellipse showing local distortion — how shapes, areas, and angles are deformed by the current projection.
+Hover over any point on the map to see a real-time Tissot indicatrix showing local distortion — how shapes, areas, and angles are deformed by the current projection.
 
 ## Features
 

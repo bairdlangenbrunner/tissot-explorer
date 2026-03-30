@@ -11,11 +11,12 @@ import { InfoPanel } from './InfoPanel';
 
 interface Props {
   projectionIndex: number;
+  centralLon: number;
 }
 
 const WORLD_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/land-110m.json';
 
-export function MapCanvas({ projectionIndex }: Props) {
+export function MapCanvas({ projectionIndex, centralLon }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const projectionRef = useRef<GeoProjection | null>(null);
@@ -53,17 +54,23 @@ export function MapCanvas({ projectionIndex }: Props) {
     const infoPanelHeight = infoEl ? infoEl.offsetHeight : 0;
 
     const proj = projections[projectionIndex].fn();
+    const currentRotation = proj.rotate();
+    proj.rotate([-centralLon, currentRotation[1], currentRotation[2] ?? 0]);
     const marginX = w * 0.075;
     const marginTop = h * 0.05;
     const marginBottom = h * 0.1;
     const availH = h - infoPanelHeight;
-    proj.fitExtent(
-      [
-        [marginX, marginTop],
-        [w - marginX, availH - marginBottom],
-      ],
-      { type: 'Sphere' },
-    );
+    const fitObject = projections[projectionIndex].conic
+      ? d3.geoGraticule().extent([[-180, -80], [180, 84]]).outline()
+      : { type: 'Sphere' as const };
+    const extent: [[number, number], [number, number]] = [
+      [marginX, marginTop],
+      [w - marginX, availH - marginBottom],
+    ];
+    proj.fitExtent(extent, fitObject);
+    if (projections[projectionIndex].conic) {
+      proj.clipExtent(extent);
+    }
     projectionRef.current = proj;
 
     const path = d3.geoPath(proj);
@@ -119,18 +126,20 @@ export function MapCanvas({ projectionIndex }: Props) {
     clipped
       .append('g')
       .attr('class', 'indicatrix-layer');
-  }, [projectionIndex]);
+  }, [projectionIndex, centralLon]);
 
   // Re-render on projection change or world load
   useEffect(() => {
     renderMap();
   }, [renderMap]);
 
-  // Resize handler
+  // Re-render when the container size changes (window resize or controls collapse)
   useEffect(() => {
-    const onResize = () => renderMap();
-    window.addEventListener('resize', onResize);
-    return () => window.removeEventListener('resize', onResize);
+    const container = containerRef.current;
+    if (!container) return;
+    const observer = new ResizeObserver(() => renderMap());
+    observer.observe(container);
+    return () => observer.disconnect();
   }, [renderMap]);
 
   const drawIndicatrix = useCallback(

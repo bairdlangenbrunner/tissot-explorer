@@ -10,7 +10,7 @@ export function AboutModal({ onClose }: AboutModalProps) {
           &times;
         </button>
         <p>
-          Tissot explorer is an interactive tool for visualizing how map
+          Projection explorer is an interactive tool for visualizing how map
           projections distort the Earth's surface. Every flat map introduces
           distortion: shapes get stretched, areas change, and angles bend.
           This tool makes that distortion visible.

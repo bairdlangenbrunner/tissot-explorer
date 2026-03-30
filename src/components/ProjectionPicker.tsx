@@ -8,6 +8,7 @@ interface Props {
 
 export function ProjectionPicker({ activeIndex, onSelect }: Props) {
   const [expanded, setExpanded] = useState(false);
+  const [desktopCollapsed, setDesktopCollapsed] = useState(false);
   const mobileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -57,9 +58,26 @@ export function ProjectionPicker({ activeIndex, onSelect }: Props) {
 
   return (
     <div className="controls">
-      {/* Desktop: grouped buttons */}
+      {/* Desktop: grouped buttons with collapse toggle */}
       <div className="controls-desktop">
-        {renderGroups()}
+        <div className="controls-expanded">
+          {desktopCollapsed ? (
+            <div className="controls-collapsed-bar">
+              <button className="active">{projections[activeIndex].name}</button>
+            </div>
+          ) : (
+            <div className="controls-groups">
+              {renderGroups()}
+            </div>
+          )}
+          <button
+            className="controls-toggle controls-hide-btn"
+            onClick={() => setDesktopCollapsed(!desktopCollapsed)}
+          >
+            {desktopCollapsed ? 'show' : 'hide'}
+            <span className={`toggle-arrow ${desktopCollapsed ? '' : 'open'}`}>&#9662;</span>
+          </button>
+        </div>
       </div>
 
       {/* Mobile: active button + "More" toggle */}

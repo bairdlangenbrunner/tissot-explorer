@@ -5,6 +5,8 @@ import type { GeoProjection } from 'd3-geo';
 export interface ProjectionDef {
   name: string;
   fn: () => GeoProjection;
+  /** Conic projections extend to infinity at the opposite pole; fitExtent must use a bounded region */
+  conic?: boolean;
 }
 
 export interface ProjectionGroup {
@@ -30,6 +32,7 @@ export const projectionGroups: ProjectionGroup[] = [
       {
         name: 'Lambert Conformal Conic',
         fn: () => d3.geoConicConformal().precision(0.1).parallels([30, 60]),
+        conic: true,
       },
     ],
   },
@@ -44,6 +47,7 @@ export const projectionGroups: ProjectionGroup[] = [
       {
         name: 'Conic Equal-Area',
         fn: () => d3.geoConicEqualArea().precision(0.1).parallels([20, 60]),
+        conic: true,
       },
       {
         name: 'Azimuthal Equal-Area',
@@ -62,7 +66,7 @@ export const projectionGroups: ProjectionGroup[] = [
       { name: 'Robinson', fn: () => d3Proj.geoRobinson().precision(0.1) },
       {
         name: 'Winkel Tripel',
-        fn: () => d3Proj.geoWinkelTripel().precision(0.1),
+        fn: () => d3Proj.geoWinkel3().precision(0.1),
       },
       {
         name: 'Natural Earth',
@@ -82,6 +86,7 @@ export const projectionGroups: ProjectionGroup[] = [
       {
         name: 'Conic Equidistant',
         fn: () => d3.geoConicEquidistant().precision(0.1).parallels([20, 60]),
+        conic: true,
       },
     ],
   },
