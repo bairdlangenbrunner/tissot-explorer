@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tissot Indicatrix Explorer</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3-geo-projection/4.0.0/d3-geo-projection.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Instrument+Serif:ital@0;1&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg: #0a0c10;
+    --surface: #12151c;
+    --border: #1e2330;
+    --text: #c8cdd8;
+    --text-dim: #5a6070;
+    --accent: #e85d3a;
+    --ocean: #0d1520;
+    --land: #1a2030;
+    --land-stroke: #2a3348;
+    --graticule: #151b28;
+    --indicatrix-fill: rgba(232, 93, 58, 0.25);
+    --indicatrix-stroke: #e85d3a;
+    --outline: #1e2330;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  header {
+    padding: 20px 28px 0;
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    flex-shrink: 0;
+  }
+
+  header h1 {
+    font-family: 'Instrument Serif', serif;
+    font-weight: 400;
+    font-size: 26px;
+    color: #eee;
+    letter-spacing: -0.02em;
+  }
+
+  header span.sub {
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .controls {
+    padding: 14px 28px;
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+  }
+
+  .controls button {
+    font-family: 'DM Mono', monospace;
+    font-size: 11px;
+    font-weight: 400;
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    background: var(--surface);
+    color: var(--text-dim);
+    border-radius: 4px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    letter-spacing: 0.02em;
+  }
+
+  .controls button:hover {
+    border-color: var(--accent);
+    color: var(--text);
+  }
+
+  .controls button.active {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: #fff;
+  }
+
+  .map-container {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    cursor: crosshair;
+  }
+
+  svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .info-panel {
+    position: absolute;
+    bottom: 20px;
+    left: 28px;
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.7;
+    pointer-events: none;
+  }
+
+  .info-panel .coord {
+    color: var(--text);
+    font-weight: 500;
+  }
+
+  .info-panel .label {
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-size: 9px;
+  }
+
+  .info-panel .metric {
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  .hint {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 12px;
+    color: var(--text-dim);
+    opacity: 0.5;
+    pointer-events: none;
+    transition: opacity 0.4s ease;
+  }
+
+  .hint.hidden { opacity: 0; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Tissot Indicatrix</h1>
+  <span class="sub">Map Projection Distortion Explorer</span>
+</header>
+
+<div class="controls" id="controls"></div>
+
+<div class="map-container" id="map-container">
+  <svg id="map"></svg>
+  <div class="hint" id="hint">Move your pointer over the map</div>
+  <div class="info-panel" id="info-panel">
+    <span class="label">Position</span><br>
+    <span class="coord" id="info-coords">—</span><br>
+    <span class="label" style="margin-top:4px;display:inline-block;">Area distortion</span><br>
+    <span class="metric" id="info-area">—</span><br>
+    <span class="label">Angular distortion</span><br>
+    <span class="metric" id="info-angular">—</span>
+  </div>
+</div>
+
+<script>
+const projections = [
+  { name: 'Globe', fn: () => d3.geoOrthographic().precision(0.1).clipAngle(90), note: 'Conformal at center — minimal distortion near the middle' },
+  { name: 'Mercator', fn: () => d3.geoMercator().precision(0.1) },
+  { name: 'Equirectangular', fn: () => d3.geoEquirectangular().precision(0.1) },
+  { name: 'Mollweide', fn: () => d3.geoMollweide().precision(0.1) },
+  { name: 'Robinson', fn: () => d3.geoRobinson().precision(0.1) },
+  { name: 'Eckert IV', fn: () => d3.geoEckert4().precision(0.1) },
+  { name: 'Azimuthal Equal-Area', fn: () => d3.geoAzimuthalEqualArea().precision(0.1) },
+  { name: 'Stereographic', fn: () => d3.geoStereographic().precision(0.1).clipAngle(140) },
+  { name: 'Gnomonic', fn: () => d3.geoGnomonic().precision(0.1).clipAngle(60) },
+  { name: 'Conic Equidistant', fn: () => d3.geoConicEquidistant().precision(0.1).parallels([20, 60]) },
+  { name: 'Natural Earth', fn: () => d3.geoNaturalEarth1().precision(0.1) },
+  { name: 'Sinusoidal', fn: () => d3.geoSinusoidal().precision(0.1) },
+];
+
+let currentProjection = null;
+let projection = null;
+let path = null;
+let worldData = null;
+
+const svg = d3.select('#map');
+const container = document.getElementById('map-container');
+
+// Build controls
+const controlsEl = document.getElementById('controls');
+projections.forEach((p, i) => {
+  const btn = document.createElement('button');
+  btn.textContent = p.name;
+  btn.addEventListener('click', () => selectProjection(i));
+  controlsEl.appendChild(btn);
+});
+
+// Layers
+const gGraticule = svg.append('g').attr('class', 'graticule-layer');
+const gOutline = svg.append('g').attr('class', 'outline-layer');
+const gLand = svg.append('g').attr('class', 'land-layer');
+const gIndicatrix = svg.append('g').attr('class', 'indicatrix-layer');
+
+// Clip path for indicatrix — uses the projection outline
+svg.append('defs').append('clipPath').attr('id', 'projection-clip')
+  .append('path').attr('id', 'clip-outline');
+
+gIndicatrix.attr('clip-path', 'url(#projection-clip)');
+
+const graticule = d3.geoGraticule().step([15, 15]);
+
+// Load world
+async function loadWorld() {
+  const resp = await fetch('https://cdn.jsdelivr.net/npm/world-atlas@2/land-110m.json');
+  const topo = await resp.json();
+  worldData = topojson.feature(topo, topo.objects.land);
+  selectProjection(0);
+}
+
+// We need topojson
+const topoScript = document.createElement('script');
+topoScript.src = 'https://cdnjs.cloudflare.com/ajax/libs/topojson-client/3.1.0/topojson-client.min.js';
+topoScript.onload = loadWorld;
+document.head.appendChild(topoScript);
+
+function selectProjection(idx) {
+  currentProjection = idx;
+  projection = projections[idx].fn();
+
+  // Fit to container
+  const w = container.clientWidth;
+  const h = container.clientHeight;
+  projection.fitSize([w * 0.85, h * 0.85], { type: 'Sphere' });
+  // Center it
+  const [tx, ty] = projection.translate();
+  projection.translate([w / 2, h / 2]);
+
+  path = d3.geoPath(projection);
+
+  // Update buttons
+  controlsEl.querySelectorAll('button').forEach((b, i) => {
+    b.classList.toggle('active', i === idx);
+  });
+
+  render();
+}
+
+function render() {
+  // Outline
+  const outlinePath = path({ type: 'Sphere' });
+  gOutline.selectAll('path').data([0])
+    .join('path')
+    .attr('d', outlinePath)
+    .attr('fill', 'var(--ocean)')
+    .attr('stroke', 'var(--outline)')
+    .attr('stroke-width', 1.5);
+
+  // Clip path
+  d3.select('#clip-outline').attr('d', outlinePath);
+
+  // Graticule
+  gGraticule.selectAll('path').data([graticule()])
+    .join('path')
+    .attr('d', path)
+    .attr('fill', 'none')
+    .attr('stroke', 'var(--graticule)')
+    .attr('stroke-width', 0.5);
+
+  // Land
+  if (worldData) {
+    gLand.selectAll('path').data([worldData])
+      .join('path')
+      .attr('d', path)
+      .attr('fill', 'var(--land)')
+      .attr('stroke', 'var(--land-stroke)')
+      .attr('stroke-width', 0.4);
+  }
+
+  // Clear indicatrix
+  gIndicatrix.selectAll('*').remove();
+}
+
+// --- Tissot indicatrix math ---
+function tissotAtPoint(lon, lat) {
+  // Numerical partial derivatives of the projection
+  const eps = 0.0001; // degrees
+
+  const center = projection([lon, lat]);
+  if (!center) return null;
+
+  // Clamp lat for derivatives near poles
+  const latN = Math.min(lat + eps, 89.99);
+  const latS = Math.max(lat - eps, -89.99);
+  const lonE = lon + eps;
+  const lonW = lon - eps;
+
+  const pLatN = projection([lon, latN]);
+  const pLatS = projection([lon, latS]);
+  const pLonE = projection([lonE, lat]);
+  const pLonW = projection([lonW, lat]);
+
+  if (!pLatN || !pLatS || !pLonE || !pLonW) return null;
+
+  // Convert epsilon to radians for proper scaling
+  const dLatRad = (latN - latS) * Math.PI / 180;
+  const dLonRad = (2 * eps) * Math.PI / 180;
+  const cosLat = Math.cos(lat * Math.PI / 180);
+
+  // Partial derivatives: dx/dlambda, dy/dlambda, dx/dphi, dy/dphi
+  // Scale longitude derivatives by cos(lat) to account for convergence of meridians
+  const dxdlam = (pLonE[0] - pLonW[0]) / (dLonRad * cosLat);
+  const dydlam = (pLonE[1] - pLonW[1]) / (dLonRad * cosLat);
+  const dxdphi = (pLatN[0] - pLatS[0]) / dLatRad;
+  const dydphi = (pLatN[1] - pLatS[1]) / dLatRad;
+
+  // Tissot parameters
+  const h = Math.sqrt(dxdphi * dxdphi + dydphi * dydphi); // scale along meridian
+  const k = Math.sqrt(dxdlam * dxdlam + dydlam * dydlam); // scale along parallel
+
+  // Angular distortion
+  const sinTheta = (dxdphi * dydlam - dydphi * dxdlam) / (h * k);
+  const theta = Math.asin(Math.max(-1, Math.min(1, sinTheta)));
+
+  // Semimajor/semiminor axes of the indicatrix ellipse
+  const ap = Math.sqrt(h * h + k * k + 2 * h * k * Math.abs(sinTheta));
+  const bp = Math.sqrt(h * h + k * k - 2 * h * k * Math.abs(sinTheta));
+  const a = (ap + bp) / 2;
+  const b = (ap - bp) / 2;
+
+  // Area distortion
+  const areaScale = h * k * Math.abs(sinTheta);
+
+  // Rotation angle of the ellipse
+  // We compute from the Jacobian columns
+  const angle = Math.atan2(dydphi, dxdphi);
+
+  return { center, a, b, angle, h, k, areaScale, omega: Math.acos(Math.max(-1, Math.min(1, 2*a*b / (a*a + b*b)))) * 180 / Math.PI };
+}
+
+// Draw indicatrix
+function drawIndicatrix(lon, lat) {
+  gIndicatrix.selectAll('*').remove();
+
+  const result = tissotAtPoint(lon, lat);
+  if (!result) return;
+
+  const { center, a, b, angle, areaScale, omega } = result;
+
+  // Normalize for a reasonable visual size
+  const baseRadius = 18;
+  const maxAxis = Math.max(a, b);
+  const scale = maxAxis > 0 ? baseRadius / maxAxis : 1;
+
+  const ellipse = gIndicatrix.append('ellipse')
+    .attr('cx', center[0])
+    .attr('cy', center[1])
+    .attr('rx', a * scale)
+    .attr('ry', b * scale)
+    .attr('transform', `rotate(${-angle * 180 / Math.PI}, ${center[0]}, ${center[1]})`)
+    .attr('fill', 'var(--indicatrix-fill)')
+    .attr('stroke', 'var(--indicatrix-stroke)')
+    .attr('stroke-width', 1.5);
+
+  // Reference circle (perfect circle = no distortion)
+  const refR = ((a + b) / 2) * scale * 0.5;
+  gIndicatrix.append('circle')
+    .attr('cx', center[0])
+    .attr('cy', center[1])
+    .attr('r', baseRadius * 0.5)
+    .attr('fill', 'none')
+    .attr('stroke', 'var(--indicatrix-stroke)')
+    .attr('stroke-width', 0.5)
+    .attr('stroke-dasharray', '2,2')
+    .attr('opacity', 0.35);
+
+  // Cross hairs
+  const crossSize = Math.max(a, b) * scale + 4;
+  const cosA = Math.cos(-angle);
+  const sinA = Math.sin(-angle);
+  gIndicatrix.append('line')
+    .attr('x1', center[0] - cosA * crossSize)
+    .attr('y1', center[1] - sinA * crossSize)
+    .attr('x2', center[0] + cosA * crossSize)
+    .attr('y2', center[1] + sinA * crossSize)
+    .attr('stroke', 'var(--indicatrix-stroke)')
+    .attr('stroke-width', 0.5)
+    .attr('opacity', 0.3);
+  gIndicatrix.append('line')
+    .attr('x1', center[0] + sinA * crossSize)
+    .attr('y1', center[1] - cosA * crossSize)
+    .attr('x2', center[0] - sinA * crossSize)
+    .attr('y2', center[1] + cosA * crossSize)
+    .attr('stroke', 'var(--indicatrix-stroke)')
+    .attr('stroke-width', 0.5)
+    .attr('opacity', 0.3);
+
+  // Update info
+  document.getElementById('info-coords').textContent =
+    `${Math.abs(lat).toFixed(1)}°${lat >= 0 ? 'N' : 'S'}, ${Math.abs(lon).toFixed(1)}°${lon >= 0 ? 'E' : 'W'}`;
+  document.getElementById('info-area').textContent =
+    `${areaScale.toFixed(3)}× ${areaScale > 1.01 ? '(enlarged)' : areaScale < 0.99 ? '(shrunk)' : '(≈preserved)'}`;
+  document.getElementById('info-angular').textContent =
+    `${omega.toFixed(1)}° max`;
+}
+
+// Pointer tracking
+container.addEventListener('pointermove', (e) => {
+  if (!projection) return;
+
+  const rect = container.getBoundingClientRect();
+  const x = e.clientX - rect.left;
+  const y = e.clientY - rect.top;
+
+  const coords = (projection.invert) ? projection.invert([x, y]) : null;
+  if (!coords || isNaN(coords[0]) || isNaN(coords[1])) {
+    gIndicatrix.selectAll('*').remove();
+    return;
+  }
+
+  const [lon, lat] = coords;
+  if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+    gIndicatrix.selectAll('*').remove();
+    return;
+  }
+
+  document.getElementById('hint').classList.add('hidden');
+  drawIndicatrix(lon, lat);
+});
+
+container.addEventListener('pointerleave', () => {
+  if (!projection) return;
+  gIndicatrix.selectAll('*').remove();
+  document.getElementById('info-coords').textContent = '—';
+  document.getElementById('info-area').textContent = '—';
+  document.getElementById('info-angular').textContent = '—';
+});
+
+// Resize
+window.addEventListener('resize', () => {
+  if (currentProjection !== null) selectProjection(currentProjection);
+});
+</script>
+</body>
+</html>
