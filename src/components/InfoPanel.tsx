@@ -24,25 +24,24 @@ function formatArea(areaScale: number): string {
 export function InfoPanel({ coords, tissot }: Props) {
   return (
     <div className="info-panel">
-      <span className="label">Position</span>
-      <br />
-      <span className="coord">
-        {coords ? formatCoords(coords[0], coords[1]) : '\u2014'}
-      </span>
-      <br />
-      <span className="label" style={{ marginTop: 4, display: 'inline-block' }}>
-        Area distortion
-      </span>
-      <br />
-      <span className="metric">
-        {tissot ? formatArea(tissot.areaScale) : '\u2014'}
-      </span>
-      <br />
-      <span className="label">Angular distortion</span>
-      <br />
-      <span className="metric">
-        {tissot ? `${tissot.omega.toFixed(1)}\u00b0 max` : '\u2014'}
-      </span>
+      <div className="group">
+        <span className="label">Position</span>
+        <span className="coord">
+          {coords ? formatCoords(coords[0], coords[1]) : '\u2014'}
+        </span>
+      </div>
+      <div className="group">
+        <span className="label">Area distortion</span>
+        <span className="metric">
+          {tissot ? formatArea(tissot.areaScale) : '\u2014'}
+        </span>
+      </div>
+      <div className="group">
+        <span className="label">Angular distortion</span>
+        <span className="metric">
+          {tissot ? `${tissot.omega.toFixed(1)}\u00b0 max` : '\u2014'}
+        </span>
+      </div>
     </div>
   );
 }

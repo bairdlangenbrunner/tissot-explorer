@@ -46,9 +46,13 @@ export function MapCanvas({ projectionIndex }: Props) {
     const w = container.clientWidth;
     const h = container.clientHeight;
 
+    // Measure the info panel so we can center the projection between it and the top
+    const infoEl = container.querySelector('.info-panel') as HTMLElement | null;
+    const infoPanelHeight = infoEl ? infoEl.offsetHeight : 0;
+
     const proj = projections[projectionIndex].fn();
     proj.fitSize([w * 0.85, h * 0.85], { type: 'Sphere' });
-    proj.translate([w / 2, h / 2]);
+    proj.translate([w / 2, (h - infoPanelHeight) / 2]);
     projectionRef.current = proj;
 
     const path = d3.geoPath(proj);
@@ -258,10 +262,9 @@ export function MapCanvas({ projectionIndex }: Props) {
     (e: React.PointerEvent) => {
       if (e.pointerType === 'touch') {
         isTouchingRef.current = false;
-        clearIndicatrix();
       }
     },
-    [clearIndicatrix],
+    [],
   );
 
   return (
@@ -273,7 +276,11 @@ export function MapCanvas({ projectionIndex }: Props) {
       onPointerMove={handlePointer}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
-      onPointerLeave={clearIndicatrix}
+      onPointerLeave={(e) => {
+        // On touch, pointerleave fires on finger lift — keep the indicatrix visible
+        if (e.pointerType === 'touch') return;
+        clearIndicatrix();
+      }}
     >
       <svg ref={svgRef} />
       <div className={`hint ${hintVisible ? '' : 'hidden'}`}>
