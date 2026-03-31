@@ -47,13 +47,28 @@ export function AboutModal({ onClose }: AboutModalProps) {
             preserving local shapes at the cost of area distortion.
           </dd>
         </dl>
-        <h3>Try it</h3>
-        <p>
-          Switch between projections using the buttons above the map. Each
-          projection makes different trade-offs. Compare Mercator's shape
-          preservation with Mollweide's area preservation, or see how the
-          orthographic globe shows minimal distortion near its center.
-        </p>
+        <h3>Controls</h3>
+        <dl>
+          <dt>Projection buttons</dt>
+          <dd>
+            Switch between projections grouped by type (conformal, equal-area,
+            compromise, equidistant, azimuthal, and other). Each makes different
+            trade-offs.
+          </dd>
+          <dt>Random</dt>
+          <dd>Jump to a random projection.</dd>
+          <dt>Central longitude</dt>
+          <dd>
+            Drag the slider to re-center the map on a different meridian.
+          </dd>
+          <dt>Size scaling</dt>
+          <dd>
+            On by default. The Tissot ellipse grows or shrinks relative to the
+            dashed reference circle, which represents no distortion. Turn off to
+            normalize the ellipse to a fixed size so you can focus on shape
+            distortion alone.
+          </dd>
+        </dl>
       </div>
     </div>
   );

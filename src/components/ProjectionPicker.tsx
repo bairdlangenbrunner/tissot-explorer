@@ -1,12 +1,13 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, type ReactNode } from 'react';
 import { projections, projectionGroups } from '../lib/projections';
 
 interface Props {
   activeIndex: number;
   onSelect: (index: number) => void;
+  mobileExtra?: ReactNode;
 }
 
-export function ProjectionPicker({ activeIndex, onSelect }: Props) {
+export function ProjectionPicker({ activeIndex, onSelect, mobileExtra }: Props) {
   const [expanded, setExpanded] = useState(false);
   const [desktopCollapsed, setDesktopCollapsed] = useState(false);
   const mobileRef = useRef<HTMLDivElement>(null);
@@ -93,6 +94,7 @@ export function ProjectionPicker({ activeIndex, onSelect }: Props) {
             {expanded ? 'less' : 'more'}
             <span className={`toggle-arrow ${expanded ? 'open' : ''}`}>&#9662;</span>
           </button>
+          {mobileExtra && <div className="controls-mobile-extra">{mobileExtra}</div>}
         </div>
         {expanded && (
           <div className="controls-dropdown">

@@ -11,6 +11,7 @@ export default function App() {
   );
   const [centralLon, setCentralLon] = useState(0);
   const [aboutOpen, setAboutOpen] = useState(false);
+  const [showSize, setShowSize] = useState(true);
 
   const handleProjectionChange = useCallback((index: number) => {
     setProjectionIndex(index);
@@ -40,9 +41,31 @@ export default function App() {
       <ProjectionPicker
         activeIndex={projectionIndex}
         onSelect={handleProjectionChange}
+        mobileExtra={
+          <>
+            <span className="size-toggle-label">size scaling</span>
+            <button
+              className={`toggle-switch${showSize ? ' on' : ''}`}
+              onClick={() => setShowSize(s => !s)}
+              aria-label="Toggle size scaling"
+            >
+              <span className="toggle-knob" />
+            </button>
+          </>
+        }
       />
       <CentralLonSlider value={centralLon} onChange={setCentralLon} />
-      <MapCanvas projectionIndex={projectionIndex} centralLon={centralLon} />
+      <div className="size-toggle-row">
+        <span className="size-toggle-label">size scaling</span>
+        <button
+          className={`toggle-switch${showSize ? ' on' : ''}`}
+          onClick={() => setShowSize(s => !s)}
+          aria-label="Toggle size scaling"
+        >
+          <span className="toggle-knob" />
+        </button>
+      </div>
+      <MapCanvas projectionIndex={projectionIndex} centralLon={centralLon} showSize={showSize} />
       {aboutOpen && <AboutModal onClose={() => setAboutOpen(false)} />}
     </>
   );

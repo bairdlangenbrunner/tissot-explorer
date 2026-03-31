@@ -16,11 +16,13 @@ export function CentralLonSlider({ value, onChange }: Props) {
         onChange={(e) => onChange(Number(e.target.value))}
       />
       <span className="central-lon-value">{value}°</span>
-      {value !== 0 && (
-        <button className="central-lon-reset" onClick={() => onChange(0)}>
-          reset
-        </button>
-      )}
+      <button
+        className="central-lon-reset"
+        style={{ visibility: value !== 0 ? 'visible' : 'hidden' }}
+        onClick={() => onChange(0)}
+      >
+        reset
+      </button>
     </div>
   );
 }

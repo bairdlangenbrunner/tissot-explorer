@@ -12,14 +12,17 @@ import { InfoPanel } from './InfoPanel';
 interface Props {
   projectionIndex: number;
   centralLon: number;
+  showSize: boolean;
 }
 
 const WORLD_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/land-110m.json';
 
-export function MapCanvas({ projectionIndex, centralLon }: Props) {
+export function MapCanvas({ projectionIndex, centralLon, showSize }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const projectionRef = useRef<GeoProjection | null>(null);
+  const hasClipExtentRef = useRef(false);
+  const clipBoundsRef = useRef<[[number, number], [number, number]] | null>(null);
   const worldRef = useRef<FeatureCollection | null>(null);
   const [coords, setCoords] = useState<[number, number] | null>(null);
   const [tissot, setTissot] = useState<TissotResult | null>(null);
@@ -69,7 +72,14 @@ export function MapCanvas({ projectionIndex, centralLon }: Props) {
     ];
     proj.fitExtent(extent, fitObject);
     if (projections[projectionIndex].conic) {
-      proj.clipExtent(extent);
+      // Don't set clipExtent on the projection — d3's post-projection polygon
+      // clipper can produce fill artifacts for conic projections near the
+      // singularity. The SVG <clipPath> handles visual clipping instead.
+      hasClipExtentRef.current = true;
+      clipBoundsRef.current = extent;
+    } else {
+      hasClipExtentRef.current = false;
+      clipBoundsRef.current = null;
     }
     projectionRef.current = proj;
 
@@ -79,24 +89,43 @@ export function MapCanvas({ projectionIndex, centralLon }: Props) {
     // Clear and rebuild
     root.selectAll('*').remove();
 
-    // Build clip path from sphere outline
+    // Build clip path — use rectangle for conics, sphere outline for others
     const defs = root.append('defs');
+    const isConic = projections[projectionIndex].conic;
     const outlinePath = path({ type: 'Sphere' }) ?? '';
-    defs
-      .append('clipPath')
-      .attr('id', 'projection-clip')
-      .append('path')
-      .attr('d', outlinePath);
+    const clip = defs.append('clipPath').attr('id', 'projection-clip');
+    if (isConic) {
+      clip
+        .append('rect')
+        .attr('x', extent[0][0])
+        .attr('y', extent[0][1])
+        .attr('width', extent[1][0] - extent[0][0])
+        .attr('height', extent[1][1] - extent[0][1]);
+    } else {
+      clip.append('path').attr('d', outlinePath);
+    }
 
     // Outline (ocean)
-    root
-      .append('path')
-      .attr('d', outlinePath)
-      .attr('fill', 'var(--ocean)')
-      .attr('stroke', 'var(--outline)')
-      .attr('stroke-width', 1.5);
+    if (isConic) {
+      root
+        .append('rect')
+        .attr('x', extent[0][0])
+        .attr('y', extent[0][1])
+        .attr('width', extent[1][0] - extent[0][0])
+        .attr('height', extent[1][1] - extent[0][1])
+        .attr('fill', 'var(--ocean)')
+        .attr('stroke', 'var(--outline)')
+        .attr('stroke-width', 1.5);
+    } else {
+      root
+        .append('path')
+        .attr('d', outlinePath)
+        .attr('fill', 'var(--ocean)')
+        .attr('stroke', 'var(--outline)')
+        .attr('stroke-width', 1.5);
+    }
 
-    // Clipped group for graticule, land, and indicatrix
+    // Clipped group for graticule and land
     const clipped = root
       .append('g')
       .attr('clip-path', 'url(#projection-clip)');
@@ -122,8 +151,8 @@ export function MapCanvas({ projectionIndex, centralLon }: Props) {
         .attr('stroke-width', 0.4);
     }
 
-    // Indicatrix group (inside clipped group)
-    clipped
+    // Indicatrix group (outside clipped group so it's not clipped at edges)
+    root
       .append('g')
       .attr('class', 'indicatrix-layer');
   }, [projectionIndex, centralLon]);
@@ -159,7 +188,13 @@ export function MapCanvas({ projectionIndex, centralLon }: Props) {
 
       const baseRadius = 36;
       const maxAxis = Math.max(a, b);
-      const scale = maxAxis > 0 ? baseRadius / maxAxis : 1;
+      // In size mode, use a fixed scale so the reference circle = no distortion
+      // In normal mode, normalize so the largest axis fits baseRadius
+      const scale = showSize
+        ? (baseRadius * 0.5) / proj.scale()
+        : maxAxis > 0
+          ? baseRadius / maxAxis
+          : 1;
 
       // Ellipse
       g.append('ellipse')
@@ -209,7 +244,7 @@ export function MapCanvas({ projectionIndex, centralLon }: Props) {
         .attr('stroke-width', 1)
         .attr('opacity', 0.5);
     },
-    [],
+    [showSize],
   );
 
   const isTouchingRef = useRef(false);
@@ -237,34 +272,63 @@ export function MapCanvas({ projectionIndex, centralLon }: Props) {
 
       const inverted = proj.invert([x, y]);
       if (!inverted || isNaN(inverted[0]) || isNaN(inverted[1])) {
-        clearIndicatrix();
+        // Keep last valid indicatrix frozen at the edge
         return;
       }
 
       const [lon, lat] = inverted;
       if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
-        clearIndicatrix();
         return;
+      }
+
+      // For conic projections, reject points outside the visible rect
+      const clipBounds = hasClipExtentRef.current ? clipBoundsRef.current : null;
+      if (clipBounds) {
+        const reprojCheck = proj([lon, lat]);
+        if (
+          reprojCheck &&
+          (reprojCheck[0] < clipBounds[0][0] ||
+            reprojCheck[0] > clipBounds[1][0] ||
+            reprojCheck[1] < clipBounds[0][1] ||
+            reprojCheck[1] > clipBounds[1][1])
+        ) {
+          return;
+        }
+      }
+
+      // For projections with a meaningful clip angle, reject points beyond the boundary
+      const clipAngle = proj.clipAngle?.();
+      if (clipAngle != null && clipAngle > 0 && clipAngle < 170) {
+        const rotation = proj.rotate();
+        const centerLon = -rotation[0];
+        const centerLat = -rotation[1];
+        const toRad = Math.PI / 180;
+        const cosD =
+          Math.sin(centerLat * toRad) * Math.sin(lat * toRad) +
+          Math.cos(centerLat * toRad) *
+            Math.cos(lat * toRad) *
+            Math.cos((lon - centerLon) * toRad);
+        if (cosD < Math.cos(clipAngle * toRad)) {
+          return;
+        }
       }
 
       // Round-trip check: reject false inversions in projection gaps
       // (e.g. between lobes of Berghaus Star or Interrupted Homolosine)
       const reprojected = proj([lon, lat]);
       if (!reprojected) {
-        clearIndicatrix();
         return;
       }
       const dx = reprojected[0] - x;
       const dy = reprojected[1] - y;
       if (dx * dx + dy * dy > 4) {
-        clearIndicatrix();
         return;
       }
 
       setCoords([lon, lat]);
       drawIndicatrix(lon, lat);
     },
-    [drawIndicatrix, clearIndicatrix],
+    [drawIndicatrix],
   );
 
   const handlePointerDown = useCallback(
