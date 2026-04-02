@@ -60,10 +60,14 @@ export function tissotAtPoint(
   const sinTheta = (dxdphi * dydlam - dydphi * dxdlam) / (h * k);
   const clampedSin = Math.max(-1, Math.min(1, sinTheta));
 
+  if (!isFinite(h) || !isFinite(k)) return null;
+
   const ap = Math.sqrt(h * h + k * k + 2 * h * k * Math.abs(clampedSin));
   const bp = Math.sqrt(h * h + k * k - 2 * h * k * Math.abs(clampedSin));
   const a = (ap + bp) / 2;
   const b = (ap - bp) / 2;
+
+  if (!isFinite(a) || !isFinite(b)) return null;
 
   const areaScale = h * k * Math.abs(clampedSin);
   const s = projection.scale();
