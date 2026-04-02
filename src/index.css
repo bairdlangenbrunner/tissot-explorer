@@ -6,12 +6,13 @@
   box-sizing: border-box;
 }
 
-:root {
+:root,
+[data-theme='dark'] {
   --bg: #0a0c10;
   --surface: #12151c;
   --border: #1e2330;
   --text: #c8cdd8;
-  --text-dim: #7a8090;
+  --text-dim: #9098a8;
   --accent: #e85d3a;
   --ocean: #111f2e;
   --land: #334d66;
@@ -20,6 +21,22 @@
   --indicatrix-fill: rgba(232, 93, 58, 0.3);
   --indicatrix-stroke: #f06a45;
   --outline: #2a3a4e;
+}
+
+[data-theme='light'] {
+  --bg: #f0f1f4;
+  --surface: #ffffff;
+  --border: #d4d8e0;
+  --text: #2c3040;
+  --text-dim: #6b7280;
+  --accent: #d04e2e;
+  --ocean: #d6e6f5;
+  --land: #9ab8a0;
+  --land-stroke: #7a9e82;
+  --graticule: #c0d0dc;
+  --indicatrix-fill: rgba(208, 78, 46, 0.25);
+  --indicatrix-stroke: #d04e2e;
+  --outline: #a0b0c0;
 }
 
 body {
@@ -41,7 +58,7 @@ body {
 header {
   padding: 12px 28px 8px;
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 16px;
   flex-shrink: 0;
   border-bottom: 1px solid var(--border);
@@ -55,8 +72,11 @@ header h1 {
   letter-spacing: -0.02em;
 }
 
-header .about-btn:first-of-type {
+.header-actions {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 header .about-btn {
@@ -84,6 +104,24 @@ header .about-btn:active {
   color: var(--text);
 }
 
+header .about-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+header .undo-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  padding: 4px;
+}
+
+header .undo-btn .undo-icon {
+  width: 14px;
+  height: 14px;
+}
+
 header span.sub {
   font-size: 12px;
   color: var(--text-dim);
@@ -109,7 +147,7 @@ header span.sub {
 
 .group-label {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Helvetica, Arial, sans-serif;
-  font-size: 9px;
+  font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--accent);
@@ -138,21 +176,21 @@ header span.sub {
   pointer-events: none;
 }
 
-.group-label:hover .group-tooltip {
+.group-label:hover .group-tooltip,
+.group-label:focus .group-tooltip {
   display: block;
+}
+
+.group-label:focus {
+  outline: 2px solid var(--accent, #4a90d9);
+  outline-offset: 2px;
+  border-radius: 2px;
 }
 
 .group-buttons {
   display: flex;
   gap: 4px;
   flex-wrap: wrap;
-}
-
-.controls-collapsed-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex: 1;
 }
 
 .controls-expanded {
@@ -195,6 +233,11 @@ header span.sub {
   color: var(--text);
 }
 
+.controls button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .controls button.active {
   background: #d04e2e;
   border-color: #d04e2e;
@@ -210,9 +253,14 @@ header span.sub {
   flex-shrink: 0;
 }
 
+.central-lon.disabled {
+  opacity: 0.35;
+  pointer-events: none;
+}
+
 .central-lon-label {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Helvetica, Arial, sans-serif;
-  font-size: 9px;
+  font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--text-dim);
@@ -235,8 +283,8 @@ header span.sub {
 
 .central-lon input[type='range']::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 14px;
-  height: 14px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: var(--accent);
   border: none;
@@ -244,8 +292,8 @@ header span.sub {
 }
 
 .central-lon input[type='range']::-moz-range-thumb {
-  width: 14px;
-  height: 14px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: var(--accent);
   border: none;
@@ -263,7 +311,8 @@ header span.sub {
 .central-lon-reset {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Helvetica, Arial, sans-serif;
   font-size: 11px;
-  padding: 2px 8px;
+  padding: 4px 10px;
+  min-height: 24px;
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text-dim);
@@ -284,6 +333,16 @@ header span.sub {
   color: var(--text);
 }
 
+.central-lon-reset:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.central-lon input[type='range']:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .size-toggle-row {
   padding: 4px 28px 8px;
   flex-shrink: 0;
@@ -294,22 +353,27 @@ header span.sub {
 
 .size-toggle-label {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Inter, Helvetica, Arial, sans-serif;
-  font-size: 9px;
+  font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--text-dim);
 }
 
 .toggle-switch {
-  width: 34px;
-  height: 20px;
-  border-radius: 10px;
+  width: 40px;
+  height: 24px;
+  border-radius: 12px;
   border: none;
   background: var(--border);
   cursor: pointer;
   position: relative;
   padding: 0;
   transition: background 0.2s ease;
+}
+
+.toggle-switch:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .toggle-switch.on {
@@ -320,15 +384,15 @@ header span.sub {
   position: absolute;
   top: 3px;
   left: 3px;
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   background: #fff;
   transition: transform 0.2s ease;
 }
 
 .toggle-switch.on .toggle-knob {
-  transform: translateX(14px);
+  transform: translateX(16px);
 }
 
 
@@ -368,7 +432,7 @@ header span.sub {
   color: var(--text-dim);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  font-size: 9px;
+  font-size: 10px;
 }
 
 .info-panel .metric {
@@ -428,7 +492,7 @@ header span.sub {
   font-family: 'DM Mono', monospace;
   font-weight: 400;
   font-size: 22px;
-  color: #eee;
+  color: var(--text);
   margin-bottom: 16px;
 }
 
@@ -450,7 +514,7 @@ header span.sub {
 
 .modal dt {
   font-weight: 500;
-  color: #eee;
+  color: var(--text);
   margin-top: 10px;
 }
 
@@ -471,10 +535,47 @@ header span.sub {
   cursor: pointer;
   line-height: 1;
   z-index: 1;
+  min-width: 32px;
+  min-height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .modal-close:hover {
   color: var(--text);
+}
+
+/* Theme toggle */
+.theme-toggle {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  transition: border-color 0.15s ease;
+  line-height: 1;
+  padding: 0;
+}
+
+@media (hover: hover) {
+  .theme-toggle:hover {
+    border-color: var(--accent);
+  }
+}
+
+.theme-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 /* Landscape mobile — allow scrolling so the full projection is reachable */
@@ -507,7 +608,18 @@ header span.sub {
 
   header .about-btn {
     font-size: 11px;
-    padding: 3px 10px;
+    padding: 8px 12px;
+    min-height: 36px;
+  }
+
+  header .undo-btn {
+    padding: 8px;
+    min-height: 36px;
+  }
+
+  header .undo-btn .undo-icon {
+    width: 14px;
+    height: 14px;
   }
 
   header span.sub {
@@ -619,13 +731,15 @@ header span.sub {
     pointer-events: none;
   }
 
-  .group-label:hover .group-tooltip {
+  .group-label:hover .group-tooltip,
+  .group-label:focus .group-tooltip {
     display: inline;
   }
 
   .controls button {
     font-size: 11px;
     padding: 8px 12px;
+    min-height: 36px;
   }
 
   .size-toggle-row {
@@ -640,9 +754,10 @@ header span.sub {
   }
 
   .controls-mobile-extra .toggle-switch {
-    width: 34px;
-    height: 20px;
-    border-radius: 10px;
+    width: 40px;
+    height: 24px;
+    min-height: 24px;
+    border-radius: 12px;
     border: none;
     padding: 0;
   }

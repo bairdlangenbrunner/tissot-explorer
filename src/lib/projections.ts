@@ -7,6 +7,8 @@ export interface ProjectionDef {
   fn: () => GeoProjection;
   /** Conic projections extend to infinity at the opposite pole; fitExtent must use a bounded region */
   conic?: boolean;
+  /** If true, central latitude rotation is cartographically meaningful for this projection */
+  supportsLatRotation?: boolean;
 }
 
 export interface ProjectionGroup {
@@ -24,15 +26,18 @@ export const projectionGroups: ProjectionGroup[] = [
       {
         name: 'Transverse Mercator',
         fn: () => d3.geoTransverseMercator().precision(0.1),
+        supportsLatRotation: true,
       },
       {
         name: 'Stereographic',
         fn: () => d3.geoStereographic().precision(0.1).clipAngle(140),
+        supportsLatRotation: true,
       },
       {
         name: 'Lambert Conformal Conic',
         fn: () => d3.geoConicConformal().precision(0.1).parallels([30, 60]),
         conic: true,
+        supportsLatRotation: true,
       },
     ],
   },
@@ -44,14 +49,18 @@ export const projectionGroups: ProjectionGroup[] = [
       { name: 'Hammer', fn: () => d3Proj.geoHammer().precision(0.1) },
       { name: 'Sinusoidal', fn: () => d3Proj.geoSinusoidal().precision(0.1) },
       { name: 'Eckert IV', fn: () => d3Proj.geoEckert4().precision(0.1) },
+      { name: 'Boggs Eumorphic', fn: () => d3Proj.geoBoggs().precision(0.1) },
+      { name: 'Eckert VI', fn: () => d3Proj.geoEckert6().precision(0.1) },
       {
         name: 'Conic Equal-Area',
         fn: () => d3.geoConicEqualArea().precision(0.1).parallels([20, 60]),
         conic: true,
+        supportsLatRotation: true,
       },
       {
         name: 'Azimuthal Equal-Area',
         fn: () => d3.geoAzimuthalEqualArea().precision(0.1),
+        supportsLatRotation: true,
       },
       {
         name: 'Interrupted Goode Homolosine',
@@ -73,6 +82,11 @@ export const projectionGroups: ProjectionGroup[] = [
         fn: () => d3.geoNaturalEarth1().precision(0.1),
       },
       { name: 'Aitoff', fn: () => d3Proj.geoAitoff().precision(0.1) },
+      {
+        name: 'Kavrayskiy VII',
+        fn: () => d3Proj.geoKavrayskiy7().precision(0.1),
+      },
+      { name: 'Patterson', fn: () => d3Proj.geoPatterson().precision(0.1) },
     ],
   },
   {
@@ -87,6 +101,7 @@ export const projectionGroups: ProjectionGroup[] = [
         name: 'Conic Equidistant',
         fn: () => d3.geoConicEquidistant().precision(0.1).parallels([20, 60]),
         conic: true,
+        supportsLatRotation: true,
       },
     ],
   },
@@ -95,12 +110,14 @@ export const projectionGroups: ProjectionGroup[] = [
     description: 'preserves directions from center',
     projections: [
       {
-        name: 'Globe (orthographic)',
+        name: 'Orthographic',
         fn: () => d3.geoOrthographic().precision(0.1).clipAngle(90),
+        supportsLatRotation: true,
       },
       {
         name: 'Gnomonic',
         fn: () => d3.geoGnomonic().precision(0.1).clipAngle(60),
+        supportsLatRotation: true,
       },
     ],
   },
@@ -127,6 +144,9 @@ export const projectionGroups: ProjectionGroup[] = [
         name: 'Berghaus Star',
         fn: () => d3Proj.geoBerghaus().precision(0.1),
       },
+      { name: 'Loximuthal', fn: () => d3Proj.geoLoximuthal().precision(0.1) },
+      { name: 'Polyconic', fn: () => d3Proj.geoPolyconic().precision(0.1) },
+      { name: 'Bottomley', fn: () => d3Proj.geoBottomley().precision(0.1) },
     ],
   },
 ];

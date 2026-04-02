@@ -1,10 +1,25 @@
-import { useState, useEffect, useRef, type ReactNode } from 'react';
+import { useState, useEffect, useRef, useCallback, type ReactNode } from 'react';
 import { projections, projectionGroups } from '../lib/projections';
 
 interface Props {
   activeIndex: number;
   onSelect: (index: number) => void;
   mobileExtra?: ReactNode;
+}
+
+function GroupLabel({ label, description, id }: { label: string; description: string; id: string }) {
+  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') {
+      (e.currentTarget as HTMLElement).blur();
+    }
+  }, []);
+
+  return (
+    <span className="group-label" tabIndex={0} onKeyDown={handleKeyDown} aria-describedby={id}>
+      {label}
+      <span className="group-tooltip" role="tooltip" id={id}>{description}</span>
+    </span>
+  );
 }
 
 export function ProjectionPicker({ activeIndex, onSelect, mobileExtra }: Props) {
@@ -14,16 +29,16 @@ export function ProjectionPicker({ activeIndex, onSelect, mobileExtra }: Props) 
 
   useEffect(() => {
     if (!expanded) return;
-    function handleClick(e: MouseEvent) {
+    function handleOutside(e: Event) {
       if (mobileRef.current && !mobileRef.current.contains(e.target as Node)) {
         setExpanded(false);
       }
     }
-    document.addEventListener('mousedown', handleClick);
-    document.addEventListener('touchstart', handleClick);
+    document.addEventListener('mousedown', handleOutside);
+    document.addEventListener('touchend', handleOutside);
     return () => {
-      document.removeEventListener('mousedown', handleClick);
-      document.removeEventListener('touchstart', handleClick);
+      document.removeEventListener('mousedown', handleOutside);
+      document.removeEventListener('touchend', handleOutside);
     };
   }, [expanded]);
 
@@ -32,10 +47,7 @@ export function ProjectionPicker({ activeIndex, onSelect, mobileExtra }: Props) 
     let flatIndex = 0;
     return projectionGroups.map((group) => (
       <div key={group.label} className="projection-group">
-        <span className="group-label">
-          {group.label}
-          <span className="group-tooltip">{group.description}</span>
-        </span>
+        <GroupLabel label={group.label} description={group.description} id={`tooltip-${group.label.replace(/\s+/g, '-')}`} />
         <div className="group-buttons">
           {group.projections.map((p) => {
             const idx = flatIndex++;
@@ -63,8 +75,25 @@ export function ProjectionPicker({ activeIndex, onSelect, mobileExtra }: Props) 
       <div className="controls-desktop">
         <div className="controls-expanded">
           {desktopCollapsed ? (
-            <div className="controls-collapsed-bar">
-              <button className="active">{projections[activeIndex].name}</button>
+            <div className="controls-groups">
+              {(() => {
+                let flatIndex = 0;
+                for (const group of projectionGroups) {
+                  const startIdx = flatIndex;
+                  flatIndex += group.projections.length;
+                  if (activeIndex >= startIdx && activeIndex < flatIndex) {
+                    return (
+                      <div key={group.label} className="projection-group collapsed">
+                        <GroupLabel label={group.label} description={group.description} id={`tooltip-collapsed-${group.label.replace(/\s+/g, '-')}`} />
+                        <div className="group-buttons">
+                          <button className="active">{projections[activeIndex].name}</button>
+                        </div>
+                      </div>
+                    );
+                  }
+                }
+                return null;
+              })()}
             </div>
           ) : (
             <div className="controls-groups">

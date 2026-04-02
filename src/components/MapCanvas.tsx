@@ -12,12 +12,13 @@ import { InfoPanel } from './InfoPanel';
 interface Props {
   projectionIndex: number;
   centralLon: number;
+  centralLat: number;
   showSize: boolean;
 }
 
 const WORLD_URL = 'https://cdn.jsdelivr.net/npm/world-atlas@2/land-110m.json';
 
-export function MapCanvas({ projectionIndex, centralLon, showSize }: Props) {
+export function MapCanvas({ projectionIndex, centralLon, centralLat, showSize }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const projectionRef = useRef<GeoProjection | null>(null);
@@ -57,8 +58,7 @@ export function MapCanvas({ projectionIndex, centralLon, showSize }: Props) {
     const infoPanelHeight = infoEl ? infoEl.offsetHeight : 0;
 
     const proj = projections[projectionIndex].fn();
-    const currentRotation = proj.rotate();
-    proj.rotate([-centralLon, currentRotation[1], currentRotation[2] ?? 0]);
+    proj.rotate([-centralLon, -centralLat, 0]);
     const marginX = w * 0.075;
     const marginTop = h * 0.05;
     const marginBottom = h * 0.1;
@@ -72,9 +72,15 @@ export function MapCanvas({ projectionIndex, centralLon, showSize }: Props) {
     ];
     proj.fitExtent(extent, fitObject);
     if (projections[projectionIndex].conic) {
-      // Don't set clipExtent on the projection — d3's post-projection polygon
-      // clipper can produce fill artifacts for conic projections near the
-      // singularity. The SVG <clipPath> handles visual clipping instead.
+      // Set a padded clipExtent to prevent D3 from generating paths with
+      // extreme coordinates near the conic singularity. The padding keeps
+      // any post-projection clipping artifacts outside the SVG <clipPath>,
+      // which handles the final visual clipping.
+      const pad = 100;
+      proj.clipExtent([
+        [extent[0][0] - pad, extent[0][1] - pad],
+        [extent[1][0] + pad, extent[1][1] + pad],
+      ]);
       hasClipExtentRef.current = true;
       clipBoundsRef.current = extent;
     } else {
@@ -89,49 +95,34 @@ export function MapCanvas({ projectionIndex, centralLon, showSize }: Props) {
     // Clear and rebuild
     root.selectAll('*').remove();
 
-    // Build clip path — use rectangle for conics, sphere outline for others
+    // Build clip path — use the bounded graticule outline for conics (fan/wedge
+    // shape), sphere outline for others
     const defs = root.append('defs');
     const isConic = projections[projectionIndex].conic;
-    const outlinePath = path({ type: 'Sphere' }) ?? '';
+    const outlinePath = isConic
+      ? path(fitObject) ?? ''
+      : path({ type: 'Sphere' }) ?? '';
     const clip = defs.append('clipPath').attr('id', 'projection-clip');
-    if (isConic) {
-      clip
-        .append('rect')
-        .attr('x', extent[0][0])
-        .attr('y', extent[0][1])
-        .attr('width', extent[1][0] - extent[0][0])
-        .attr('height', extent[1][1] - extent[0][1]);
-    } else {
-      clip.append('path').attr('d', outlinePath);
-    }
+    clip.append('path').attr('d', outlinePath);
 
     // Outline (ocean)
-    if (isConic) {
-      root
-        .append('rect')
-        .attr('x', extent[0][0])
-        .attr('y', extent[0][1])
-        .attr('width', extent[1][0] - extent[0][0])
-        .attr('height', extent[1][1] - extent[0][1])
-        .attr('fill', 'var(--ocean)')
-        .attr('stroke', 'var(--outline)')
-        .attr('stroke-width', 1.5);
-    } else {
-      root
-        .append('path')
-        .attr('d', outlinePath)
-        .attr('fill', 'var(--ocean)')
-        .attr('stroke', 'var(--outline)')
-        .attr('stroke-width', 1.5);
-    }
+    root
+      .append('path')
+      .attr('d', outlinePath)
+      .attr('fill', 'var(--ocean)')
+      .attr('stroke', 'var(--outline)')
+      .attr('stroke-width', 1.5);
 
     // Clipped group for graticule and land
     const clipped = root
       .append('g')
       .attr('clip-path', 'url(#projection-clip)');
 
-    // Graticule
-    const graticule = d3.geoGraticule().step([15, 15]);
+    // Graticule — bound the extent for conics to avoid generating paths
+    // near the singularity at the opposite pole
+    const graticule = isConic
+      ? d3.geoGraticule().extent([[-180, -80], [180, 84]]).step([15, 15])
+      : d3.geoGraticule().step([15, 15]);
     clipped
       .append('path')
       .datum(graticule())
@@ -155,7 +146,7 @@ export function MapCanvas({ projectionIndex, centralLon, showSize }: Props) {
     root
       .append('g')
       .attr('class', 'indicatrix-layer');
-  }, [projectionIndex, centralLon]);
+  }, [projectionIndex, centralLon, centralLat]);
 
   // Re-render on projection change or world load
   useEffect(() => {
@@ -247,6 +238,13 @@ export function MapCanvas({ projectionIndex, centralLon, showSize }: Props) {
     [showSize],
   );
 
+  // Re-draw indicatrix when showSize changes
+  useEffect(() => {
+    if (coords) {
+      drawIndicatrix(coords[0], coords[1]);
+    }
+  }, [showSize]);
+
   const isTouchingRef = useRef(false);
 
   const clearIndicatrix = useCallback(() => {
@@ -262,6 +260,7 @@ export function MapCanvas({ projectionIndex, centralLon, showSize }: Props) {
     (e: React.PointerEvent) => {
       // For touch, only respond while finger is down
       if (e.pointerType === 'touch' && !isTouchingRef.current) return;
+      const isTouch = e.pointerType === 'touch';
 
       const proj = projectionRef.current;
       if (!proj || !proj.invert) return;
@@ -272,27 +271,36 @@ export function MapCanvas({ projectionIndex, centralLon, showSize }: Props) {
 
       const inverted = proj.invert([x, y]);
       if (!inverted || isNaN(inverted[0]) || isNaN(inverted[1])) {
-        // Keep last valid indicatrix frozen at the edge
+        if (isTouch) clearIndicatrix();
         return;
       }
 
       const [lon, lat] = inverted;
       if (lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+        if (isTouch) clearIndicatrix();
         return;
       }
 
-      // For conic projections, reject points outside the visible rect
-      const clipBounds = hasClipExtentRef.current ? clipBoundsRef.current : null;
-      if (clipBounds) {
-        const reprojCheck = proj([lon, lat]);
-        if (
-          reprojCheck &&
-          (reprojCheck[0] < clipBounds[0][0] ||
-            reprojCheck[0] > clipBounds[1][0] ||
-            reprojCheck[1] < clipBounds[0][1] ||
-            reprojCheck[1] > clipBounds[1][1])
-        ) {
+      // For conic projections, reject points outside the bounded latitude range
+      // and outside the visible rect
+      if (hasClipExtentRef.current) {
+        if (lat < -80 || lat > 84) {
+          if (isTouch) clearIndicatrix();
           return;
+        }
+        const clipBounds = clipBoundsRef.current;
+        if (clipBounds) {
+          const reprojCheck = proj([lon, lat]);
+          if (
+            reprojCheck &&
+            (reprojCheck[0] < clipBounds[0][0] ||
+              reprojCheck[0] > clipBounds[1][0] ||
+              reprojCheck[1] < clipBounds[0][1] ||
+              reprojCheck[1] > clipBounds[1][1])
+          ) {
+            if (isTouch) clearIndicatrix();
+            return;
+          }
         }
       }
 
@@ -309,6 +317,7 @@ export function MapCanvas({ projectionIndex, centralLon, showSize }: Props) {
             Math.cos(lat * toRad) *
             Math.cos((lon - centerLon) * toRad);
         if (cosD < Math.cos(clipAngle * toRad)) {
+          if (isTouch) clearIndicatrix();
           return;
         }
       }
@@ -317,18 +326,20 @@ export function MapCanvas({ projectionIndex, centralLon, showSize }: Props) {
       // (e.g. between lobes of Berghaus Star or Interrupted Homolosine)
       const reprojected = proj([lon, lat]);
       if (!reprojected) {
+        if (isTouch) clearIndicatrix();
         return;
       }
       const dx = reprojected[0] - x;
       const dy = reprojected[1] - y;
       if (dx * dx + dy * dy > 4) {
+        if (isTouch) clearIndicatrix();
         return;
       }
 
       setCoords([lon, lat]);
       drawIndicatrix(lon, lat);
     },
-    [drawIndicatrix],
+    [drawIndicatrix, clearIndicatrix],
   );
 
   const handlePointerDown = useCallback(

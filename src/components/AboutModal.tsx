@@ -1,17 +1,63 @@
+import { useEffect, useRef } from 'react';
+import { projections } from '../lib/projections';
+
 interface AboutModalProps {
   onClose: () => void;
 }
 
 export function AboutModal({ onClose }: AboutModalProps) {
+  const modalRef = useRef<HTMLDivElement>(null);
+
+  // Escape key to close
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === 'Escape') onClose();
+    }
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, [onClose]);
+
+  // Focus trap
+  useEffect(() => {
+    const modal = modalRef.current;
+    if (!modal) return;
+
+    const focusable = modal.querySelectorAll<HTMLElement>(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+
+    first?.focus();
+
+    function handleTab(e: KeyboardEvent) {
+      if (e.key !== 'Tab') return;
+      if (e.shiftKey) {
+        if (document.activeElement === first) {
+          e.preventDefault();
+          last?.focus();
+        }
+      } else {
+        if (document.activeElement === last) {
+          e.preventDefault();
+          first?.focus();
+        }
+      }
+    }
+    document.addEventListener('keydown', handleTab);
+    return () => document.removeEventListener('keydown', handleTab);
+  }, []);
+
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal" onClick={(e) => e.stopPropagation()}>
-        <button className="modal-close" onClick={onClose}>
+    <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true">
+      <div className="modal" onClick={(e) => e.stopPropagation()} ref={modalRef}>
+        <button className="modal-close" onClick={onClose} aria-label="Close">
           &times;
         </button>
         <p>
           Projection explorer is an interactive tool for visualizing how map
-          projections distort the Earth's surface. Every flat map introduces
+          projections distort the Earth's surface. Explore {projections.length} projections
+          across six categories. Every flat map introduces
           distortion: shapes get stretched, areas change, and angles bend.
           This tool makes that distortion visible.
         </p>
@@ -25,22 +71,12 @@ export function AboutModal({ onClose }: AboutModalProps) {
         </p>
         <h3>What the metrics mean</h3>
         <dl>
-          <dt>h (meridian scale)</dt>
-          <dd>
-            Scale factor along north-south lines. A value of 1.0 means no
-            stretching; higher values mean the map is stretched vertically.
-          </dd>
-          <dt>k (parallel scale)</dt>
-          <dd>
-            Scale factor along east-west lines. A value of 1.0 means no
-            stretching; higher values mean the map is stretched horizontally.
-          </dd>
-          <dt>Area scale (s)</dt>
+          <dt>Area distortion</dt>
           <dd>
             How much areas are enlarged or shrunk. A value of 1.0 preserves
             area; equal-area projections keep this at 1.0 everywhere.
           </dd>
-          <dt>Max angular distortion (&omega;)</dt>
+          <dt>Angular distortion</dt>
           <dd>
             The worst-case angle deformation at a point. Conformal projections
             (like Mercator or stereographic) keep this at 0&deg; everywhere,
