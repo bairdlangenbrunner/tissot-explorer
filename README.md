@@ -9,9 +9,11 @@ Hover (or touch on mobile) over any point on the map to see a real-time Tissot i
 - **30 map projections** across 6 categories — conformal, equal-area, compromise, equidistant, azimuthal, and other
 - **Real-time Tissot indicatrix** — hover or touch to see distortion at any point, with the ellipse freezing at the projection edge rather than disappearing
 - **Size scaling** — on by default, the ellipse grows and shrinks to reflect actual scale distortion; toggle off to normalize size and focus on shape distortion alone
-- **Distortion metrics** — meridian scale (h), parallel scale (k), area scale, and max angular distortion (omega)
-- **Central longitude slider** — re-center the map on any meridian
-- **Random projection** — jump to a random projection to explore
+- **Distortion metrics** — area scale and max angular distortion displayed in real time
+- **Central longitude slider** — re-center the map on any meridian (preserved across projection switches)
+- **Random projection** — jump to a random projection to explore, with undo to go back
+- **Collapsible projection picker** — grouped buttons on desktop (collapse to show only the active category), dropdown on mobile (dismisses on outside touch)
+- **Light/dark theme** — toggle between themes
 - **Responsive design** — works on desktop, tablet, and mobile with touch support
 - **About modal** — built-in explanation of the tool, metrics, and controls
 

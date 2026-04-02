@@ -38,12 +38,18 @@ React + TypeScript app built with Vite. Dependencies:
 - Each defined as a factory function that returns a fresh d3 projection instance
 - Some projections have clip angles (orthographic 90°, stereographic 140°, gnomonic 60°)
 - Conic projections use a bounded graticule for `fitExtent` and an explicit `clipExtent`
+- `supportsLatRotation` flag on `ProjectionDef` marks projections where central latitude rotation is cartographically meaningful (azimuthal, conic, Transverse Mercator) — plumbing exists in `MapCanvas` and `CentralLonSlider` but the latitude slider UI is currently commented out in `App.tsx`
 
 ### Controls
 - Projection picker with grouped buttons (collapsible on desktop, dropdown on mobile)
-- Random projection button
-- Central longitude slider with reset
+- Desktop collapsed view shows only the active projection's category
+- Mobile dropdown dismisses on outside touch (`touchend` listener)
+- Group labels have accessible tooltips: focusable (`tabIndex={0}`), `role="tooltip"`, `aria-describedby`, dismiss with Escape
+- Random projection button with undo history
+- Central longitude slider with reset (preserved across projection changes)
 - Size scaling toggle (iOS-style switch)
+- Light/dark theme toggle
+- `CentralLonSlider` component is reusable — accepts `label`, `min`, `max`, and `disabled` props for use as either a longitude or latitude slider
 
 ## Style rules
 
@@ -51,26 +57,4 @@ React + TypeScript app built with Vite. Dependencies:
 
 ## Potential improvements
 
-### Interaction
-- Drag to rotate (desktop only, or two-finger on mobile) as a complement to the longitude slider — conflicts with single-finger Tissot on mobile, so needs careful gesture design
-- Central latitude slider (most useful for azimuthal projections where it shifts the viewpoint pole)
-- Projection scale/zoom — zoom into a region to examine local distortion in detail
-- Pinch-to-zoom on mobile
-
-### Visualization
-- Grid of static Tissot ellipses (traditional cartography textbook style) as an overlay toggle
-- Color-coded distortion heatmap layer (e.g., area distortion as a choropleth)
-- Animated transition when switching projections (interpolate between projection functions)
-- Show graticule labels (latitude/longitude values along edges)
-
-### Comparison and education
-- Side-by-side projection comparison mode
-- Standard parallels slider for conic projections (adjust where distortion is minimized)
-- Projection family descriptions — explain what conformal/equal-area/compromise means in more detail
-- "Best projection for..." guide — suggest projections based on use case (navigation, thematic maps, etc.)
-
-### Technical
-- URL-based state (share a link to a specific projection + longitude + settings)
-- Keyboard navigation for projection switching
-- Offline support / PWA
-- Performance: canvas-based rendering for smoother interaction on low-end devices
+See [ROADMAP.md](ROADMAP.md) for the full list of feature ideas and future directions.
